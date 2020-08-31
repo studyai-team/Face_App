@@ -18,6 +18,7 @@
         android:id="@+id/selectedImage"
         android:layout_width="200dp"
         android:layout_height="300dp"
+        android:layout_marginTop="60dp"
         android:layout_gravity="center"
         app:srcCompat="@drawable/ic_baseline_error_24" />
 
@@ -28,20 +29,50 @@
         android:layout_gravity="center"
         android:orientation="horizontal">
 
-        <RadioButton
-            android:id="@+id/type_a_button"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:text="@string/type_a" />
+            android:orientation="vertical">
 
-        <RadioButton
-            android:id="@+id/type_b_button"
+            <RadioButton
+                android:id="@+id/type_a_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:text="@string/type_a" />
+
+            <ImageView
+                android:id="@+id/nikonikoImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:srcCompat="@mipmap/nikoniko" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="50dp"
-            android:textSize="15sp"
-            android:text="@string/type_b" />
+            android:orientation="vertical"
+            android:layout_marginStart="50dp">
+
+            <RadioButton
+                android:id="@+id/type_b_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:text="@string/type_b" />
+
+            <ImageView
+                android:id="@+id/imageView2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:srcCompat="@mipmap/nikkori" />
+
+        </LinearLayout>
+
+
     </LinearLayout>
 
     <Button
@@ -49,10 +80,12 @@
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="50dp"
         android:onClick="clickEditButton"
         android:text="@string/edit_button"
         android:textSize="20sp" />
+
+
 
 
 </LinearLayout>
