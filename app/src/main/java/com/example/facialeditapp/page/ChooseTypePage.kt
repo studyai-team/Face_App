@@ -1,4 +1,4 @@
-package com.example.facialeditapp
+package com.example.facialeditapp.page
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +10,9 @@ import android.view.View
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.example.facialeditapp.Param
+import com.example.facialeditapp.R
+import com.example.facialeditapp.UploadImageHttpRequest
 import java.io.FileDescriptor
 import java.io.IOException
 
@@ -33,12 +36,17 @@ class ChooseTypePage : AppCompatActivity() {
 
     public fun clickEditButton(view: View) {
         try {
-            Thread(Runnable {
-                handler.post {
-                    val bmp: Bitmap = getBitmapFromUri(imageUri)
-                    UploadImageHttpRequest(this).execute( Param("http://xxxx.xxxx/index.php", bmp) )
-                }
-            }).start()
+//            Thread(Runnable {
+//                handler.post {
+//                    val bmp: Bitmap = getBitmapFromUri(imageUri)
+                    UploadImageHttpRequest(this).execute(
+                        Param(
+                            "http://192.168.10.6:9004", null
+//                            bmp
+                        )
+                    )
+//                }
+//            }).start()
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -46,12 +54,12 @@ class ChooseTypePage : AppCompatActivity() {
 //        startActivity(intent)
     }
 
-    @Throws(IOException::class)
-    private fun getBitmapFromUri(uri: Uri): Bitmap {
-        val parcelFileDescriptor: ParcelFileDescriptor? = contentResolver.openFileDescriptor(uri, "r")
-        val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
-        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
-        parcelFileDescriptor?.close()
-        return image
-    }
+//    @Throws(IOException::class)
+//    private fun getBitmapFromUri(uri: Uri): Bitmap {
+//        val parcelFileDescriptor: ParcelFileDescriptor? = contentResolver.openFileDescriptor(uri, "r")
+//        val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
+//        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+//        parcelFileDescriptor?.close()
+//        return image
+//    }
 }

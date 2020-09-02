@@ -8,10 +8,12 @@ import android.os.AsyncTask
 import android.os.ParcelFileDescriptor
 import android.view.View
 import android.content.ContentResolver
+import android.util.Log
 import android.widget.TextView
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 
 class UploadImageHttpRequest : AsyncTask<Param, Void, String> {
@@ -26,33 +28,37 @@ class UploadImageHttpRequest : AsyncTask<Param, Void, String> {
         var connection: HttpURLConnection? = null
         val sb = StringBuilder()
         try {
-            // 画像をjpeg形式でstreamに保存
-            val jpg = ByteArrayOutputStream()
-            param.bmp?.compress(Bitmap.CompressFormat.JPEG, 100, jpg)
-            val url = URL(param.uri)
+////             画像をjpeg形式でstreamに保存
+//            val jpg = ByteArrayOutputStream()
+//            param.bmp?.compress(Bitmap.CompressFormat.JPEG, 100, jpg)
+//            val url = URL(param.uri)
+            val url = URL("http://192.168.10.6:9004")
+            print(url.content)
+            print(url.port)
+            Log.w("テスト", url.path)
             connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 3000 //接続タイムアウトを設定する。
             connection.readTimeout = 3000 //レスポンスデータ読み取りタイムアウトを設定する。
-            connection.requestMethod = "POST" //HTTPのメソッドをPOSTに設定する。
+            connection.requestMethod = "GET" //HTTPのメソッドをGETに設定する。
             //ヘッダーを設定する
-            connection.setRequestProperty("User-Agent", "Android")
-            connection.setRequestProperty("Content-Type", "application/octet-stream")
+//            connection.setRequestProperty("User-Agent", "Android")
+//            connection.setRequestProperty("Content-Type", "application/octet-stream")
             connection.doInput = true //リクエストのボディ送信を許可する
-            connection.doOutput = true //レスポンスのボディ受信を許可する
+//            connection.doOutput = true //レスポンスのボディ受信を許可する
             connection.useCaches = false //キャッシュを使用しない
             connection.connect()
 
-            // データを投げる
-            val out: OutputStream = BufferedOutputStream(connection.outputStream)
-            out.write(jpg.toByteArray())
-            out.flush()
+//            // データを投げる
+//            val out: OutputStream = BufferedOutputStream(connection.outputStream)
+//            out.write(jpg.toByteArray())
+//            out.flush()
 
-            // データを受け取る
-            val `is`: InputStream = connection.inputStream
-            val reader = BufferedReader(InputStreamReader(`is`, "UTF-8"))
-            var line: String? = ""
-            while (reader.readLine().also{line = it} != null) sb.append(line)
-            `is`.close()
+//            // データを受け取る
+//            val `is`: InputStream = connection.inputStream
+//            val reader = BufferedReader(InputStreamReader(`is`, "UTF-8"))
+//            var line: String? = ""
+//            while (reader.readLine().also{line = it} != null) sb.append(line)
+//            `is`.close()
         } catch (e: IOException) {
             e.printStackTrace()
         } finally {

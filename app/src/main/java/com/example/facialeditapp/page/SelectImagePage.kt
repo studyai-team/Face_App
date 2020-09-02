@@ -1,12 +1,11 @@
-package com.example.facialeditapp
+package com.example.facialeditapp.page
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.example.facialeditapp.R
 
 
 class SelectImagePage : AppCompatActivity() {
