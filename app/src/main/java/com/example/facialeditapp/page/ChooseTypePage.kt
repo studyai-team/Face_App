@@ -4,8 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
@@ -18,7 +18,6 @@ import java.io.IOException
 
 
 class ChooseTypePage : AppCompatActivity() {
-    private val handler: Handler = Handler()
     private var imageUri: Uri = Uri.EMPTY
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,10 +36,17 @@ class ChooseTypePage : AppCompatActivity() {
     public fun clickEditButton(view: View) {
         try {
             val bmp: Bitmap = getBitmapFromUri(imageUri)
+
+            Log.i("bmp", "width:" + bmp.width + " " + "height:" + bmp.height)
+
+            val resizedBmp = resizeBitmap(bmp)
+
+            Log.i("resizedBmp", "width:" + resizedBmp.width + " " + "height:" + resizedBmp.height)
+
             UploadImageHttpRequest(this).execute(
                 Param(
                     "http://192.168.10.6:9004/image",
-                    bmp
+                    resizedBmp
                 )
             )
         } catch (e: IOException) {
@@ -57,5 +63,12 @@ class ChooseTypePage : AppCompatActivity() {
         val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
         parcelFileDescriptor?.close()
         return image
+    }
+
+    private fun resizeBitmap(before: Bitmap): Bitmap {
+        val height = 551
+        val width  = 413
+
+        return Bitmap.createScaledBitmap(before, width,  height,true)
     }
 }
