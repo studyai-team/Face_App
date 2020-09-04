@@ -1,8 +1,9 @@
-package com.example.facialeditapp
+package com.example.facialeditapp.page
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.example.facialeditapp.R
 
 class SaveImagePage : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
