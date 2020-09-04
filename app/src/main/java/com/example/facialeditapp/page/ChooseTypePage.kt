@@ -36,17 +36,13 @@ class ChooseTypePage : AppCompatActivity() {
 
     public fun clickEditButton(view: View) {
         try {
-//            Thread(Runnable {
-//                handler.post {
-//                    val bmp: Bitmap = getBitmapFromUri(imageUri)
-                    UploadImageHttpRequest(this).execute(
-                        Param(
-                            "http://192.168.10.6:9004", null
-//                            bmp
-                        )
-                    )
-//                }
-//            }).start()
+            val bmp: Bitmap = getBitmapFromUri(imageUri)
+            UploadImageHttpRequest(this).execute(
+                Param(
+                    "http://192.168.10.6:9004/image",
+                    bmp
+                )
+            )
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -54,12 +50,12 @@ class ChooseTypePage : AppCompatActivity() {
 //        startActivity(intent)
     }
 
-//    @Throws(IOException::class)
-//    private fun getBitmapFromUri(uri: Uri): Bitmap {
-//        val parcelFileDescriptor: ParcelFileDescriptor? = contentResolver.openFileDescriptor(uri, "r")
-//        val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
-//        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
-//        parcelFileDescriptor?.close()
-//        return image
-//    }
+    @Throws(IOException::class)
+    private fun getBitmapFromUri(uri: Uri): Bitmap {
+        val parcelFileDescriptor: ParcelFileDescriptor? = contentResolver.openFileDescriptor(uri, "r")
+        val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
+        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+        parcelFileDescriptor?.close()
+        return image
+    }
 }
