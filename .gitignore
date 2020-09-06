@@ -1,0 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+*.jpg
+resnet50_ft_weight.pkl
+test_video.mp4
+saved_models
+images
+venv
+.idea
