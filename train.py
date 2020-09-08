@@ -11,7 +11,7 @@ from torch.autograd import Variable
 
 from dataset_class import VidDataSet
 from models import *
-from torchsummary import summary
+# from torchsummary import summary
 
 import torch
 import cv2
@@ -26,7 +26,7 @@ t_start = datetime.now()
 parser = argparse.ArgumentParser()
 parser.add_argument("--epoch", type=int, default=0, help="epoch to start training from")
 parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
-parser.add_argument("--dataset_name", type=str, default="Pic", help="name of the dataset")
+parser.add_argument("--dataset_path", type=str, default="/home/sato/D/unzippedFaces", help="name of the dataset")
 parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
 parser.add_argument("--lr_g", type=float, default=5e-5, help="adam: learning rate of generator")
 parser.add_argument("--lr_d", type=float, default=5e-5, help="adam: learning rate of discriminator")
@@ -76,7 +76,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(o
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 
-dataset = VidDataSet(K=8, path_to_mp4="/home/sato/D/unzippedFaces", device=device)
+dataset = VidDataSet(size=256, data_path=opt.dataset_path, device=device)
 dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
 
 # ----------

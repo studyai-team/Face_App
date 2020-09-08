@@ -16,16 +16,16 @@ mean = np.array([1, 1, 1])
 
 
 class VidDataSet(Dataset):
-    def __init__(self, K, path_to_mp4, device):
-        self.K = K
-        self.path_to_mp4 = path_to_mp4
+    def __init__(self, size, data_path, device):
+        self.size = size
+        self.data_path = data_path
         self.device = device
         self.transform = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize(mean, std),
              ]
         )
-        self.files = glob.glob(path_to_mp4 + "/*/*/*/*.jpg")
+        self.files = glob.glob(data_path + "/*/*/*/*.jpg")
 
     def __len__(self):
         return len(self.files)
@@ -33,12 +33,12 @@ class VidDataSet(Dataset):
     def __getitem__(self, idx):
         path = self.files[idx % len(self.files)]
         source_image = cv2.imread(path)
-        source_image = cv2.resize(source_image, (256, 256))
+        source_image = cv2.resize(source_image, (self.size, self.size))
         source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
         source_landmark = generate_landmarks(source_image)
 
         target_image = cv2.imread(get_target_landmark_path(path))
-        target_image = cv2.resize(target_image, (256, 256))
+        target_image = cv2.resize(target_image, (self.size, self.size))
         target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
         target_landmark = generate_landmarks(target_image)
 
