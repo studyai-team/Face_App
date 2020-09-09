@@ -71,7 +71,7 @@ if opt.epoch != 0:
     embedder.load_state_dict(torch.load("saved_models/discriminator_%d.pth" % opt.epoch))
 
 # Optimizers (Learning parameter is different from the original paper)
-optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.b1, opt.b2))
+optimizer_G = torch.optim.Adam(list(generator.parameters()) + list(embedder.parameters()), lr=opt.lr_g, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(opt.b1, opt.b2))
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
