@@ -9,6 +9,7 @@ from networks import *
 import torchvision.transforms as transforms
 
 from torchvision.utils import save_image
+import face_alignment
 
 
 std = np.array([0.5, 0.5, 0.5])
@@ -26,6 +27,8 @@ class VidDataSet(Dataset):
              ]
         )
         self.files = glob.glob(data_path + "/*/*/*/*.jpg")
+        self.face_aligner = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False,
+                                                         device='cuda:0')
 
     def __len__(self):
         return len(self.files)
@@ -35,12 +38,12 @@ class VidDataSet(Dataset):
         source_image = cv2.imread(path)
         source_image = cv2.resize(source_image, (self.size, self.size))
         source_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2RGB)
-        source_landmark = generate_landmarks(source_image)
+        source_landmark = generate_landmarks(source_image, self.face_aligner)
 
         target_image = cv2.imread(get_target_landmark_path(path))
         target_image = cv2.resize(target_image, (self.size, self.size))
         target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)
-        target_landmark = generate_landmarks(target_image)
+        target_landmark = generate_landmarks(target_image, self.face_aligner)
 
         source_image = source_image.transpose(2, 0, 1) / 255
         target_image = target_image.transpose(2, 0, 1) / 255

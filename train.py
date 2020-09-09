@@ -2,8 +2,8 @@ import argparse
 from datetime import datetime
 import os
 
-import matplotlib
-matplotlib.use("Agg")
+# import matplotlib
+# matplotlib.use("Agg")
 
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
@@ -92,63 +92,64 @@ for epoch in range(opt.epoch, opt.n_epochs):
     pbar = tqdm(total=1000)
 
     for i, data in enumerate(dataloader):
-        # Configure model input
-        source_image = data["source_image"].type(Tensor)
-        target_image = data["target_image"].type(Tensor)
-        source_landmark = data["source_landmark"].type(Tensor)
-        target_landmark = data["target_landmark"].type(Tensor)
+        with torch.set_grad_enabled(True):
+            # Configure model input
+            source_image = data["source_image"].type(Tensor)
+            target_image = data["target_image"].type(Tensor)
+            source_landmark = data["source_landmark"].type(Tensor)
+            target_landmark = data["target_landmark"].type(Tensor)
 
-        # ------------------
-        #  Train Generators
-        # ------------------
+            # ------------------
+            #  Train Generators
+            # ------------------
 
-        # optimizer_E.zero_grad()
-        optimizer_G.zero_grad()
-        output_1, output_2, output_3, output_4, output_5 = embedder(target_image)
-        generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
+            # optimizer_E.zero_grad()
+            optimizer_G.zero_grad()
+            output_1, output_2, output_3, output_4, output_5 = embedder(target_image)
+            generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
 
-        # Measure loss
-        loss_l1 = Loss_L1(source_image, generated_image)
-        loss_vgg = Loss_VGG19(source_image, generated_image)
-        loss_id = Loss_VGGFace(source_image, generated_image)
+            # Measure loss
+            loss_l1 = Loss_L1(source_image, generated_image)
+            loss_vgg = Loss_VGG19(source_image, generated_image)
+            loss_id = Loss_VGGFace(source_image, generated_image)
 
-        # Extract validity predictions from discriminator
-        pred_fake = discriminator(generated_image, target_landmark)
+            # Extract validity predictions from discriminator
+            pred_fake = discriminator(generated_image, target_landmark)
 
-        # Adversarial loss (relativistic average GAN)
-        loss_GAN = Loss_adv(pred_fake, torch.ones_like(pred_fake))
+            # Adversarial loss (relativistic average GAN)
+            loss_GAN = Loss_adv(pred_fake, torch.ones_like(pred_fake))
 
-        # Total generator loss
-        loss_G = loss_GAN + 20 * loss_l1 + 2 * loss_vgg + 0.2 * loss_id
+            # Total generator loss
+            loss_G = loss_GAN + 20 * loss_l1 + 2 * loss_vgg + 0.2 * loss_id
 
-        loss_G.backward()
-        optimizer_G.step()
+            loss_G.backward()
+            optimizer_G.step()
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
 
-        optimizer_D.zero_grad()
+            optimizer_D.zero_grad()
 
-        pred_real = discriminator(source_image, source_landmark)
-        pred_fake = discriminator(generated_image.detach(), target_landmark)
+            pred_real = discriminator(source_image, source_landmark)
+            pred_fake = discriminator(generated_image.detach(), target_landmark)
 
-        # Total loss
-        loss_D = Loss_adv(pred_real, torch.ones_like(pred_real)) + Loss_adv(pred_fake, torch.zeros_like(pred_fake))
+            # Total loss
+            loss_D = Loss_adv(pred_real, torch.ones_like(pred_real)) + Loss_adv(pred_fake, torch.zeros_like(pred_fake))
 
-        loss_D.backward()
-        optimizer_D.step()
+            loss_D.backward()
+            optimizer_D.step()
 
-        # --------------
-        #  Log Progress
-        # --------------
-        D_loss += loss_D.item()
-        G_loss += loss_G.item()
-        pbar.update(1)
+            # --------------
+            #  Log Progress
+            # --------------
+            D_loss += loss_D.item()
+            G_loss += loss_G.item()
+            pbar.update(1)
 
-        # dataset is too large, we will skip every 1000 iter
-        if i >= 1000:
-            break
+            # dataset is too large, we will skip every 1000 iter
+            if i >= 1000:
+                break
 
     avg_D_loss = D_loss / len(dataloader)
     avg_G_loss = G_loss / len(dataloader)

@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from torch.nn.functional import elu, instance_norm
 import torch.nn.functional as F
-import matplotlib
-matplotlib.use("Agg")
+# import matplotlib
+# matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 import face_alignment
 import random
@@ -245,13 +245,7 @@ class NoiseLayer(nn.Module):
 
 
 # https://github.com/vincent-thevenin/Realistic-Neural-Talking-Head-Models
-def generate_landmarks(frame):
-    frame_landmark_list = []
-    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device='cuda:0')
-
-    # for i in range(len(frames_list)):
-    #     try:
-    #         input = frames_list[i]
+def generate_landmarks(frame, fa):
     preds = fa.get_landmarks(frame)[0]
 
     dpi = 100
@@ -281,16 +275,8 @@ def generate_landmarks(frame):
     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    # frame_landmark_list.append((input, data))
     plt.close(fig)
-    #     except:
-    #         print('Error: Video corrupted or no landmarks visible')
-    #
-    # for i in range(len(frames_list) - len(frame_landmark_list)):
-    #     # filling frame_landmark_list in case of error
-    #     frame_landmark_list.append(frame_landmark_list[i])
 
-    # return frame_landmark_list
     return data
 
 
