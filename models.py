@@ -242,3 +242,66 @@ class Discriminator64(nn.Module):
         out = self.self_attention(out)
         out = self.layer4(out)
         return out
+
+
+class GeneratorLight(nn.Module):
+    def __init__(self):
+        super(GeneratorLight, self).__init__()
+        self.inputlayer = IOLayer(3, 32)
+
+        self.downsamplinglayer_1 = DownsamplingLayer(32, 64)
+        self.downsamplinglayer_2 = DownsamplingLayer(64, 128)
+        self.downsamplinglayer_3 = DownsamplingLayer(128, 256)
+        self.downsamplinglayer_4 = DownsamplingLayer(256, 512)
+        self.downsamplinglayer_5 = DownsamplingLayer(512, 512)
+
+        self.upsamplinglayer_1 = UpsamplingLayer(512, 512)
+        self.upsamplinglayer_2 = UpsamplingLayer(512, 256)
+        self.self_attention_1 = SelfAttention(256)
+        self.upsamplinglayer_3 = UpsamplingLayer(256, 128)
+        self.self_attention_2 = SelfAttention(128)
+        self.upsamplinglayer_4 = UpsamplingLayer(128, 64)
+        self.upsamplinglayer_5 = UpsamplingLayer(64, 32)
+
+        self.spade_1 = SPADE(512, 512)
+        self.spade_2 = SPADE(512, 512)
+        self.spade_3 = SPADE(256, 256)
+        self.spade_4 = SPADE(128, 128)
+        self.spade_5 = SPADE(64, 64)
+
+        self.outputlayer = IOLayer(32, 3)
+
+    def forward(self, x, output_emb_1, output_emb_2, output_emb_3, output_emb_4, output_emb_5):
+        x1 = self.inputlayer(x)
+
+        x2 = self.downsamplinglayer_1(x1)
+        x3 = self.downsamplinglayer_2(x2)
+        x4 = self.downsamplinglayer_3(x3)
+        x5 = self.downsamplinglayer_4(x4)
+        x6 = self.downsamplinglayer_5(x5)
+
+        x = self.spade_1(x6, output_emb_5)
+        x = torch.add(x, x6)
+        x = self.upsamplinglayer_1(x)
+
+        x = self.spade_2(x, output_emb_4)
+        x = torch.add(x, x5)
+        x = self.upsamplinglayer_2(x)
+        x = self.self_attention_1(x)
+
+        x = self.spade_3(x, output_emb_3)
+        x = torch.add(x, x4)
+        x = self.upsamplinglayer_3(x)
+        x = self.self_attention_2(x)
+
+        x = self.spade_4(x, output_emb_2)
+        x = torch.add(x, x3)
+        x = self.upsamplinglayer_4(x)
+
+        x = self.spade_5(x, output_emb_1)
+        x = torch.add(x, x2)
+        x = self.upsamplinglayer_5(x)
+        x = torch.add(x, x1)
+
+        x = self.outputlayer(x)
+        return x

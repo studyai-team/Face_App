@@ -2,8 +2,8 @@ import argparse
 from datetime import datetime
 import os
 
-import matplotlib
-matplotlib.use("Agg")
+# import matplotlib
+# matplotlib.use("Agg")
 
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
@@ -25,7 +25,7 @@ t_start = datetime.now()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epoch", type=int, default=0, help="epoch to start training from")
-parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=500, help="number of epochs of training")
 parser.add_argument("--dataset_path", type=str, default="/home/sato/D/unzippedFaces", help="name of the dataset")
 parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
 parser.add_argument("--lr_g", type=float, default=5e-5, help="adam: learning rate of generator")
@@ -35,7 +35,7 @@ parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first 
 parser.add_argument("--b2", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--hr_shape", type=int, default=256, help="training image size 256 or 512")
 parser.add_argument("--sample_interval", type=int, default=1, help="interval between saving image samples")
-parser.add_argument("--checkpoint_interval", type=int, default=1, help="batch interval between model checkpoints")
+parser.add_argument("--checkpoint_interval", type=int, default=10, help="batch interval between model checkpoints")
 parser.add_argument("--warmup_epochs", type=int, default=0, help="number of epochs with pixel-wise loss only")
 parser.add_argument("--lambda_adv", type=float, default=1e-2, help="adversarial loss weight")
 parser.add_argument("--save_images", default='images', help="where to store images")
@@ -54,9 +54,9 @@ else:
     device = torch.device('cpu')
 
 # Initialize generator and discriminator
-generator = Generator64().to(device)
-discriminator = Discriminator64().to(device)
-embedder = Embedder64().to(device)
+generator = GeneratorLight().to(device)
+discriminator = Discriminator().to(device)
+embedder = Embedder().to(device)
 
 # # Losses
 Loss_L1 = torch.nn.L1Loss().to(device)
@@ -76,7 +76,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(o
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 
-dataset = VidDataSet(size=64, data_path=opt.dataset_path, device=device)
+dataset = VidDataSet(size=256, data_path=opt.dataset_path, device=device)
 dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
 
 # ----------
@@ -87,9 +87,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
     D_loss = 0
     G_loss = 0
 
-    pbar = tqdm(total=len(dataloader))
+    # pbar = tqdm(total=len(dataloader))
     # dataset is too large, we will skip every 1000 iter
-    # pbar = tqdm(total=1000)
+    pbar = tqdm(total=1000)
 
     for i, data in enumerate(dataloader):
         with torch.set_grad_enabled(True):
@@ -105,13 +105,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
             # optimizer_E.zero_grad()
             optimizer_G.zero_grad()
-            output_1, output_2, output_3 = embedder(target_image)
-            generated_image = generator(source_image, output_1, output_2, output_3)
+            output_1, output_2, output_3, output_4, output_5 = embedder(target_image)
+            generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
 
             # Measure loss
             loss_l1 = Loss_L1(source_image, generated_image)
             loss_vgg = Loss_VGG19(source_image, generated_image)
-            loss_id = Loss_VGGFace(source_image, generated_image)
+            # loss_id = Loss_VGGFace(source_image, generated_image)
 
             # Extract validity predictions from discriminator
             pred_fake = discriminator(generated_image, target_landmark)
@@ -120,7 +120,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
             loss_GAN = Loss_adv(pred_fake, torch.ones_like(pred_fake))
 
             # Total generator loss
-            loss_G = loss_GAN + 20 * loss_l1 + 2 * loss_vgg + 0.2 * loss_id
+            loss_G = loss_GAN + 20 * loss_l1 + 2 * loss_vgg
 
             loss_G.backward()
             optimizer_G.step()
@@ -148,8 +148,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             pbar.update(1)
 
             # dataset is too large, we will skip every 1000 iter
-            # if i >= 1000:
-            #     break
+            if i >= 10000:
+                break
 
     avg_D_loss = D_loss / len(dataloader)
     avg_G_loss = G_loss / len(dataloader)
