@@ -1,15 +1,9 @@
-from networks import select_frames
-a = select_frames("test_video.mp4", 8)
-print(len(a), a[0].shape)
+from PIL import Image
 
-hr_shape = opt.hr_shape
+img = Image.open("target_landmarks/typeA.jpg")
+img = img.crop((150, 20, 750, 620)).resize((256, 256))
+img.save("a.png")
 
-image = cv2.imread("after.jpg")
-# print(image.shape)
-cv2.imwrite("aa.jpg", image)
-RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-flame_list = [RGB]
-l = generate_landmarks(flame_list)
-# print(l[0])
-cv2.imwrite("1.jpg", l[0][0])
-# exit()
+img = Image.open("target_landmarks/typeB.png")
+img = img.crop((40, 10, 520, 490)).resize((256, 256))
+img.save("b.png")

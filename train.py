@@ -105,7 +105,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
             # optimizer_E.zero_grad()
             optimizer_G.zero_grad()
-            output_1, output_2, output_3, output_4, output_5 = embedder(target_image)
+            output_1, output_2, output_3, output_4, output_5 = embedder(target_landmark)
             generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
 
             # Measure loss

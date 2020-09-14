@@ -12,6 +12,7 @@ import glob
 
 import cv2
 import os
+from PIL import Image
 
 
 class DownSamplingConvolutionLayer(nn.Module):
@@ -298,3 +299,22 @@ def get_target_landmark_path(source_path):
     file_path = os.path.dirname(source_path)
     image_list = glob.glob(os.path.join(file_path, "*.jpg"))
     return random.choice(image_list)
+
+
+def preprocess_image(image_path, device):
+    img = Image.open(image_path)
+    img = img.resize((256, 256))
+    img = np.asarray(img).astype("f").transpose(2, 0, 1) / 255
+    img = torch.from_numpy(img).to(device).unsqueeze(0)
+    return img
+
+
+def preprocess_landmark(image_path, fa, device):
+    image = cv2.imread(image_path)
+    image = cv2.resize(image, (256, 256))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    landmark = generate_landmarks(image, fa)
+    landmark = landmark.transpose(2, 0, 1) / 255
+    # landmark = torch.from_numpy(landmark).to(device).unsqueeze(0)
+    landmark = torch.from_numpy(landmark).unsqueeze(0)
+    return landmark

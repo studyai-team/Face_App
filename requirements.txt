@@ -1,0 +1,6 @@
+pillow
+torch
+torchvision
+matplotlib
+face_alignment
+opencv-python

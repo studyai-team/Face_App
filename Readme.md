@@ -11,7 +11,7 @@ face_alignment
 opencv-python   
 etc...
 
-# How to use it
+# Training
 1. git clone
 2. pip install -r requirements.txt
 3. Download Voxceleb1 Dataset   
@@ -23,3 +23,13 @@ biometric matching(http://www.robots.ox.ac.uk/~vgg/research/CMBiometrics/)
 This model was introduced in this cite(https://github.com/cydonia999/VGGFace2-pytorch)
 5. Train the model
 ```python train.py```
+
+# Inference
+1. git clone
+2. pip install -re requirements.txt
+3. Download model
+Generator(https://drive.google.com/file/d/1eOzUqdvnjzybrX1hougGUgCYabNgT7mk/view?usp=sharing)  
+Embedder(https://drive.google.com/file/d/1MNid2VoMZpPKw8lYbqqMoI2F_2aqjg1j/view?usp=sharing)  
+in ```saved_models/```
+4. Select source image path and model path using argparse command  
+ex.) ```python inference.py --source_image_path target_landmarks/typeA.png```
