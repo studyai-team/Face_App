@@ -48,9 +48,7 @@ egao_landmark = preprocess_landmark("target_landmarks/typeB.png", face_aligner, 
 
 # Calculate image
 output_1_m, output_2_m, output_3_m, output_4_m, output_5_m = embedder(magao_landmark)
-print(magao_landmark.shape)
 output_1_e, output_2_e, output_3_e, output_4_e, output_5_e = embedder(egao_landmark)
-print(egao_landmark.shape)
 if opt.type == "A":
     output_1, output_2, output_3, output_4, output_5 = output_1_m, output_2_m, output_3_m, output_4_m, output_5_m
 elif opt.type == "B":
@@ -60,7 +58,6 @@ else:
     exit()
 
 source_image = preprocess_image(opt.source_image_path, device).type(Tensor)
-exit()
 generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
 save_image(generated_image, opt.output + "output.png")
 print('Output generated image')
