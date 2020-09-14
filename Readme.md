@@ -26,7 +26,7 @@ This model was introduced in this cite(https://github.com/cydonia999/VGGFace2-py
 
 # Inference
 1. git clone
-2. pip install -re requirements.txt
+2. pip install -r requirements.txt
 3. Download model
 Generator(https://drive.google.com/file/d/1eOzUqdvnjzybrX1hougGUgCYabNgT7mk/view?usp=sharing)  
 Embedder(https://drive.google.com/file/d/1MNid2VoMZpPKw8lYbqqMoI2F_2aqjg1j/view?usp=sharing)  
