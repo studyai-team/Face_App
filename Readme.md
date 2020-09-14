@@ -32,4 +32,4 @@ Generator(https://drive.google.com/file/d/1eOzUqdvnjzybrX1hougGUgCYabNgT7mk/view
 Embedder(https://drive.google.com/file/d/1MNid2VoMZpPKw8lYbqqMoI2F_2aqjg1j/view?usp=sharing)  
 in ```saved_models/```
 4. Select source image path and model path using argparse command  
-ex.) ```python inference.py --source_image_path target_landmarks/typeA.png```
+ex.) ```python inference.py --source_image_path examples/ひげ.png```

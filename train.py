@@ -9,7 +9,7 @@ from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from dataset_class import VidDataSet
+from dataset_class import VidDataSet, collate_fn
 from models import *
 # from torchsummary import summary
 
@@ -66,9 +66,9 @@ Loss_adv = torch.nn.MSELoss().to(device)
 
 if opt.epoch != 0:
     # Load pretrained models
-    generator.load_state_dict(torch.load("saved_models/generator_%d.pth" % opt.epoch))
-    discriminator.load_state_dict(torch.load("saved_models/discriminator_%d.pth" % opt.epoch))
-    embedder.load_state_dict(torch.load("saved_models/embedder_%d.pth" % opt.epoch))
+    generator.load_state_dict(torch.load(opt.save_models + "/generator_%d.pth" % opt.epoch))
+    discriminator.load_state_dict(torch.load(opt.save_models + "/discriminator_%d.pth" % opt.epoch))
+    embedder.load_state_dict(torch.load(opt.save_models + "/embedder_%d.pth" % opt.epoch))
 
 # Optimizers (Learning parameter is different from the original paper)
 optimizer_G = torch.optim.Adam(list(generator.parameters()) + list(embedder.parameters()), lr=opt.lr_g, betas=(opt.b1, opt.b2))
@@ -77,7 +77,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(o
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 
 dataset = VidDataSet(size=256, data_path=opt.dataset_path, device=device)
-dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, collate_fn=collate_fn)
 
 # ----------
 #  Training
