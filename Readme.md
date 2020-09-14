@@ -19,7 +19,7 @@ This model was introduced in this cite(https://github.com/cydonia999/VGGFace2-py
 1. git clone
 2. pip install -r requirements.txt
 3. Download model
-Generator(https://drive.google.com/file/d/1eOzUqdvnjzybrX1hougGUgCYabNgT7mk/view?usp=sharing)  
+Generator(https://drive.google.com/file/d/1eOzUqdvnjzybrX1hougGUgCYabNgT7mk/view?usp=sharing) and  
 Embedder(https://drive.google.com/file/d/1MNid2VoMZpPKw8lYbqqMoI2F_2aqjg1j/view?usp=sharing)  
 in ```saved_models/```
 4. Select source image path and model path using argparse command  
