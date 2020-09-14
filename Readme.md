@@ -2,15 +2,6 @@
 
 このコードはFaR-GANの非公式実装です。ある人が写った写真と、その人の表情を変えたいようなターゲット画像を入力すると、元の画像の人が写ったまま表情を変えることができます。これを利用して証明写真用に撮影した写真の表情が悪かった時、理想的な表情に変換することが出来ます。
 
-# Requirement
-In progress…
-
-torch   
-matplotlib  
-face_alignment  
-opencv-python   
-etc...
-
 # Training
 1. git clone
 2. pip install -r requirements.txt
