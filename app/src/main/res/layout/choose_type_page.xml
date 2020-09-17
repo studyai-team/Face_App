@@ -27,41 +27,46 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:layout_gravity="center"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <LinearLayout
+        <RadioGroup
+            android:id="@+id/type_button_group"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
             <RadioButton
                 android:id="@+id/type_a_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
-                android:text="@string/type_a" />
-
-            <ImageView
-                android:id="@+id/nikonikoImage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                app:srcCompat="@mipmap/nikoniko" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginStart="50dp">
+                android:layout_marginEnd="50dp"
+                android:text="@string/magao" />
 
             <RadioButton
                 android:id="@+id/type_b_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
-                android:text="@string/type_b" />
+                android:text="@string/egao" />
+
+        </RadioGroup>
+
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/nikonikoImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="50dp"
+                app:srcCompat="@mipmap/nikoniko" />
+
 
             <ImageView
                 android:id="@+id/imageView2"
@@ -69,6 +74,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 app:srcCompat="@mipmap/nikkori" />
+
 
         </LinearLayout>
 
@@ -80,6 +86,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="30dp"
+        android:layout_marginStart="5dp"
         android:onClick="clickEditButton"
         android:text="@string/edit_button"
         android:textSize="20sp" />
