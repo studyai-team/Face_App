@@ -16,7 +16,7 @@ class SelectImagePage : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.select_image_page)
         val myToolbar: Toolbar = findViewById(R.id.my_toolbar)
         setSupportActionBar(myToolbar)
     }
