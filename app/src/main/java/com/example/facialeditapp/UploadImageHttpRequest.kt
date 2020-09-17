@@ -1,14 +1,19 @@
 package com.example.facialeditapp
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.AsyncTask
+import android.util.Log
 import android.view.View
 import android.widget.TextView
+import com.example.facialeditapp.page.ChooseTypePage
+import com.example.facialeditapp.page.SelectImagePage
+import org.json.JSONObject
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Base64
+import java.util.*
 
 
 class UploadImageHttpRequest : AsyncTask<Param, Void, String> {
@@ -73,8 +78,13 @@ class UploadImageHttpRequest : AsyncTask<Param, Void, String> {
     }
 
     override fun onPostExecute(string: String?) {
-        // 戻り値をViewにセット
-        val textView = mActivity!!.findViewById<View>(R.id.textView) as TextView
-        textView.text = string
+
+        val jsonObject = JSONObject(string)
+
+        Log.w("ここ", jsonObject.get("img").toString())
+        
+//        // 戻り値をViewにセット
+//        val textView = mActivity!!.findViewById<View>(R.id.textView) as TextView
+//        textView.text = string
     }
 }
