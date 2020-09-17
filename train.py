@@ -109,9 +109,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
             generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
 
             # Measure loss
-            loss_l1 = Loss_L1(source_image, generated_image)
-            loss_vgg = Loss_VGG19(source_image, generated_image)
-            loss_id = Loss_VGGFace(source_image, generated_image)
+            loss_l1 = Loss_L1(target_image, generated_image)
+            loss_vgg = Loss_VGG19(target_image, generated_image)
+            loss_id = Loss_VGGFace(target_image, generated_image)
 
             # Extract validity predictions from discriminator
             pred_fake = discriminator(generated_image, target_landmark)
