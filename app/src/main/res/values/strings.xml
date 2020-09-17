@@ -2,8 +2,8 @@
     <string name="app_name">Facial edit App</string>
     <string name="upload_button">Upload Your Picture</string>
     <string name="edit_button">Edit</string>
-    <string name="type_a">Type A</string>
-    <string name="type_b">Type B</string>
+    <string name="magao">真顔</string>
+    <string name="egao">笑顔</string>
     <string name="save_button">Save</string>
     <string name="retry_button">Retry</string>
 </resources>

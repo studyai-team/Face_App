@@ -11,6 +11,8 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.example.facialeditapp.Param
@@ -40,25 +42,34 @@ class ChooseTypePage : AppCompatActivity() {
 
         val imageView = findViewById<ImageView>(R.id.selectedImage)
         imageView.setImageURI(imageUri)
-
     }
 
     public fun clickEditButton(view: View) {
         try {
-            val bmp: Bitmap = getBitmapFromUri(imageUri)
+            val typeButtonGroup = findViewById<RadioGroup>(R.id.type_button_group)
+            val selectedTypeButton = findViewById<RadioButton>(typeButtonGroup.checkedRadioButtonId)
 
+            //真顔のタイプ
+            var type = 1
+            if(getString(R.string.egao) == selectedTypeButton.text) {
+                //笑顔のタイプ
+                type = 2
+            }
+            Log.i("type", "type: $type")
+
+            val bmp: Bitmap = getBitmapFromUri(imageUri)
             Log.i("bmp", "width:" + bmp.width + " " + "height:" + bmp.height)
 
             setOriginalBmpSize(bmp)
 
             val resizedBmp = resizeBitmap(bmp)
-
             Log.i("resizedBmp", "width:" + resizedBmp.width + " " + "height:" + resizedBmp.height)
 
             UploadImageHttpRequest(this).execute(
                 Param(
                     "http://192.168.10.6:9004/image",
-                    resizedBmp
+                    resizedBmp,
+                    type
                 )
             )
         } catch (e: IOException) {
@@ -99,6 +110,8 @@ class ChooseTypePage : AppCompatActivity() {
             var connection: HttpURLConnection? = null
             val sb = StringBuilder()
             try {
+                val type = param.type
+
                 //画像をjpeg形式でstreamに保存
                 val jpg = ByteArrayOutputStream()
                 param.bmp?.compress(Bitmap.CompressFormat.JPEG, 100, jpg)
@@ -107,7 +120,7 @@ class ChooseTypePage : AppCompatActivity() {
                 val encodedJpg: String = Base64.getEncoder().encodeToString(jpg.toByteArray())
 
                 //jsonにエンコードした画像データを埋め込む
-                val json: String = String.format("{ \"image\":\"%s\" } ", encodedJpg)
+                val json: String = String.format("{ \"image\":\"%s\", \"type\":\"%d\" } ", encodedJpg, type)
 
                 val url = URL(param.uri)
                 connection = url.openConnection() as HttpURLConnection
@@ -149,10 +162,7 @@ class ChooseTypePage : AppCompatActivity() {
         }
 
         override fun onPostExecute(string: String?) {
-
             val jsonObject = JSONObject(string)
-
-            Log.w("ここ", jsonObject.get("img").toString())
 
             val intent = Intent(this@ChooseTypePage, SaveImagePage::class.java)
             intent.putExtra(OUTPUT, jsonObject.get("img").toString())
