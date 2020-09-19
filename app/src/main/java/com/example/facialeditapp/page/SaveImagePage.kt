@@ -76,16 +76,6 @@ class SaveImagePage : AppCompatActivity() {
     private fun setUpWriteExternalStorage() {
         // 外部ストレージに画像を保存する
         try {
-            // 画像を置く外部ストレージ先
-//            val path: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-//            val fileName = "facial_app.jpg"
-//            val file: File? = File(path, fileName)
-//
-//            FileOutputStream(file).use{ output ->
-//                outputBmp?.compress(Bitmap.CompressFormat.JPEG, 50, output)
-//            }
-
-//            if (path != null) {
             val resolver = applicationContext.contentResolver
 
             val values = ContentValues().apply {
@@ -102,18 +92,6 @@ class SaveImagePage : AppCompatActivity() {
 
             val toast = Toast.makeText(this, "画像が保存されました", Toast.LENGTH_SHORT)
             toast.show()
-//            } else {
-//                val toast = Toast.makeText(this, "画像が保存されませんでした", Toast.LENGTH_SHORT)
-//                toast.show()
-//            }
-
-            try {
-                // これをしないと、新規フォルダは端末をシャットダウンするまで更新されない
-//                showFolder(file)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
 
         } catch (e: IOException) {
             e.printStackTrace()

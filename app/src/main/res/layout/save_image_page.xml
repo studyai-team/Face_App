@@ -42,5 +42,4 @@
         android:text="@string/retry_button"
         android:textSize="20sp" />
 
-
 </LinearLayout>
