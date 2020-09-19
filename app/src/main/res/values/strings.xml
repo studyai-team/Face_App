@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Facial edit App</string>
+    <string name="app_name">ResumeFace</string>
     <string name="upload_button">Upload Your Picture</string>
     <string name="edit_button">Edit</string>
     <string name="magao">真顔</string>
