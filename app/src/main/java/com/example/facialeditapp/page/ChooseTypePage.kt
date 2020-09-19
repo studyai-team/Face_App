@@ -1,16 +1,17 @@
 package com.example.facialeditapp.page
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.os.Handler
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -51,7 +52,7 @@ class ChooseTypePage : AppCompatActivity() {
 
             //真顔のタイプ
             var type = 1
-            if(getString(R.string.egao) == selectedTypeButton.text) {
+            if(getString(R.string.egao) == selectedTypeButton?.text) {
                 //笑顔のタイプ
                 type = 2
             }
@@ -65,9 +66,11 @@ class ChooseTypePage : AppCompatActivity() {
             val resizedBmp = resizeBitmap(bmp)
             Log.i("resizedBmp", "width:" + resizedBmp.width + " " + "height:" + resizedBmp.height)
 
-            UploadImageHttpRequest(this).execute(
+            val handler = Handler()
+
+            UploadImageHttpRequest( handler ).execute(
                 Param(
-                    "http://192.168.10.6:9004/image",
+                    "http://35.221.90.53:9004/image",
                     resizedBmp,
                     type
                 )
@@ -99,10 +102,11 @@ class ChooseTypePage : AppCompatActivity() {
     }
 
     inner class UploadImageHttpRequest : AsyncTask<Param, Void, String> {
-        private var mActivity: Activity? = null
+        private var handler: Handler? = null
+        private val progressBar: ProgressBar? = findViewById(R.id.progressBar)
 
-        constructor(activity: Activity?) {
-            mActivity = activity
+        constructor(handler: Handler?) {
+            this.handler = handler
         }
 
         override fun doInBackground(vararg params: Param): String? {
@@ -125,7 +129,7 @@ class ChooseTypePage : AppCompatActivity() {
                 val url = URL(param.uri)
                 connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 3000 //接続タイムアウトを設定する。
-                connection.readTimeout = 3000 //レスポンスデータ読み取りタイムアウトを設定する。
+                connection.readTimeout = 50000 //レスポンスデータ読み取りタイムアウトを設定する。
                 connection.requestMethod = "POST" //HTTPのメソッドをPOSTに設定する。
 
                 //ヘッダーを設定する
@@ -137,6 +141,8 @@ class ChooseTypePage : AppCompatActivity() {
                 connection.useCaches = false //キャッシュを使用しない
                 connection.instanceFollowRedirects = false
                 connection.connect()
+
+                handler!!.post { progressBar?.visibility = ProgressBar.VISIBLE }
 
                 // データを投げる
                 val out: OutputStream = connection.outputStream
@@ -162,6 +168,9 @@ class ChooseTypePage : AppCompatActivity() {
         }
 
         override fun onPostExecute(string: String?) {
+
+            handler!!.post { progressBar?.visibility = ProgressBar.INVISIBLE }
+
             val jsonObject = JSONObject(string)
 
             val intent = Intent(this@ChooseTypePage, SaveImagePage::class.java)
