@@ -1,6 +1,9 @@
-pillow
 torch
 torchvision
-matplotlib
-face_alignment
 opencv-python
+Pillow
+tqdm
+matplotlib
+networkx
+scipy
+face_alignment

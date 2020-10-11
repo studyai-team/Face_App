@@ -1,170 +1,400 @@
-import argparse
-from datetime import datetime
-import os
-
-# import matplotlib
-# matplotlib.use("Agg")
-
-from torchvision.utils import save_image
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-
-from dataset_class import VidDataSet, collate_fn
-from models import *
-# from torchsummary import summary
-
 import torch
-import cv2
-import numpy as np
-from networks import generate_landmarks
-from tqdm import tqdm
+from torch import nn
 
-from loss import VGGLoss, VGGFace
+import argparse
+import os
+import pathlib
+import importlib
+import ssl
+import time
+import copy
+import sys
 
-t_start = datetime.now()
+from datasets import utils as ds_utils
+from networks import utils as nt_utils
+from runners import utils as rn_utils
+from logger import Logger
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--epoch", type=int, default=0, help="epoch to start training from")
-parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
-parser.add_argument("--dataset_path", type=str, default="/home/sato/D/unzippedFaces", help="name of the dataset")
-parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
-parser.add_argument("--lr_g", type=float, default=5e-5, help="adam: learning rate of generator")
-parser.add_argument("--lr_d", type=float, default=5e-5, help="adam: learning rate of discriminator")
-parser.add_argument("--lr_e", type=float, default=5e-5, help="adam: learning rate of embedder")
-parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
-parser.add_argument("--b2", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
-parser.add_argument("--hr_shape", type=int, default=256, help="training image size 256 or 512")
-parser.add_argument("--sample_interval", type=int, default=1, help="interval between saving image samples")
-parser.add_argument("--checkpoint_interval", type=int, default=10, help="batch interval between model checkpoints")
-parser.add_argument("--warmup_epochs", type=int, default=0, help="number of epochs with pixel-wise loss only")
-parser.add_argument("--lambda_adv", type=float, default=1e-2, help="adversarial loss weight")
-parser.add_argument("--save_images", default='images', help="where to store images")
-parser.add_argument("--save_models", default='saved_models', help="where to save models")
-parser.add_argument("--gpu", type=int, default=0, help="gpu number")
-opt = parser.parse_args()
-print(opt)
 
-os.makedirs(opt.save_images, exist_ok=True)
-os.makedirs(opt.save_models, exist_ok=True)
 
-if torch.cuda.is_available():
-    torch.cuda.set_device(opt.gpu)
-    device = torch.device('cuda:{}'.format(opt.gpu))
-else:
-    device = torch.device('cpu')
+class TrainingWrapper(object):
+    @staticmethod
+    def get_args(parser):
+        # General options
+        parser.add('--project_dir',              default='.', type=str,
+                                                 help='root directory of the code')
 
-# Initialize generator and discriminator
-generator = Generator().to(device)
-discriminator = Discriminator().to(device)
-embedder = Embedder().to(device)
+        parser.add('--torch_home',               default='', type=str,
+                                                 help='directory used for storage of the checkpoints')
 
-# # Losses
-Loss_L1 = torch.nn.L1Loss().to(device)
-Loss_VGG19 = VGGLoss(loss_type="vgg54").to(device)
-Loss_VGGFace = VGGFace(model_path="resnet50_ft_weight.pkl").to(device)
-Loss_adv = torch.nn.MSELoss().to(device)
+        parser.add('--experiment_name',          default='test', type=str,
+                                                 help='name of the experiment used for logging')
 
-if opt.epoch != 0:
-    # Load pretrained models
-    generator.load_state_dict(torch.load(opt.save_models + "/generator_%d.pth" % opt.epoch))
-    discriminator.load_state_dict(torch.load(opt.save_models + "/discriminator_%d.pth" % opt.epoch))
-    embedder.load_state_dict(torch.load(opt.save_models + "/embedder_%d.pth" % opt.epoch))
+        parser.add('--dataloader_name',          default='voxceleb2', type=str,
+                                                 help='name of the file in dataset directory which is used for data loading')
 
-# Optimizers (Learning parameter is different from the original paper)
-optimizer_G = torch.optim.Adam(list(generator.parameters()) + list(embedder.parameters()), lr=opt.lr_g, betas=(opt.b1, opt.b2))
-optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(opt.b1, opt.b2))
+        parser.add('--dataset_name',             default='voxceleb2_512px', type=str,
+                                                 help='name of the dataset in the data root folder')
 
-Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
+        parser.add('--data_root',                default="/group-volume/orc_srr/violet/datasets/voxceleb2_512px", type=str,
+                                                 help='root directory of the data')
 
-dataset = VidDataSet(size=256, data_path=opt.dataset_path, device=device)
-dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, collate_fn=collate_fn)
+        parser.add('--debug',                    action='store_true',
+                                                 help='turn on the debug mode: fast epoch, useful for testing')
 
-# ----------
-#  Training
-# ----------
+        parser.add('--runner_name',              default='default', type=str,
+                                                 help='class that wraps the models and performs training and inference steps')
 
-for epoch in range(opt.epoch, opt.n_epochs):
-    D_loss = 0
-    G_loss = 0
+        parser.add('--no_disk_write_ops',        action='store_true',
+                                                 help='avoid doing write operations to disk')
 
-    # pbar = tqdm(total=len(dataloader))
-    # dataset is too large, we will skip every 1000 iter
-    pbar = tqdm(total=1000)
+        parser.add('--redirect_print_to_file',   action='store_true',
+                                                 help='redirect stdout and stderr to file')
 
-    for i, data in enumerate(dataloader):
-        with torch.set_grad_enabled(True):
-            # Configure model input
-            source_image = data["source_image"].type(Tensor)
-            target_image = data["target_image"].type(Tensor)
-            source_landmark = data["source_landmark"].type(Tensor)
-            target_landmark = data["target_landmark"].type(Tensor)
+        parser.add('--random_seed',              default=0, type=int,
+                                                 help='used for initialization of pytorch and numpy seeds')
 
-            # ------------------
-            #  Train Generators
-            # ------------------
+        # Initialization options
+        parser.add('--init_experiment_dir',      default='', type=str,
+                                                 help='directory of the experiment used for the initialization of the networks')
 
-            # optimizer_E.zero_grad()
-            optimizer_G.zero_grad()
-            output_1, output_2, output_3, output_4, output_5 = embedder(target_landmark)
-            generated_image = generator(source_image, output_1, output_2, output_3, output_4, output_5)
+        parser.add('--init_networks',            default='', type=str,
+                                                 help='list of networks to intialize')
 
-            # Measure loss
-            loss_l1 = Loss_L1(target_image, generated_image)
-            loss_vgg = Loss_VGG19(target_image, generated_image)
-            loss_id = Loss_VGGFace(target_image, generated_image)
+        parser.add('--init_which_epoch',         default='none', type=str,
+                                                 help='epoch to initialize from')
 
-            # Extract validity predictions from discriminator
-            pred_fake = discriminator(generated_image, target_landmark)
+        parser.add('--which_epoch',              default='none', type=str,
+                                                 help='epoch to continue training from')
 
-            # Adversarial loss (relativistic average GAN)
-            loss_GAN = Loss_adv(pred_fake, torch.ones_like(pred_fake))
+        # Distributed options
+        parser.add('--num_gpus',                 default=1, type=int,
+                                                 help='>1 enables DDP')
 
-            # Total generator loss
-            loss_G = loss_GAN + 20 * loss_l1 + 2 * loss_vgg + 0.2 * loss_id
+        # Training options
+        parser.add('--num_epochs',               default=1000, type=int,
+                                                 help='number of epochs for training')
 
-            loss_G.backward()
-            optimizer_G.step()
+        parser.add('--checkpoint_freq',          default=25, type=int,
+                                                 help='frequency of checkpoints creation in epochs')
 
-            # ---------------------
-            #  Train Discriminator
-            # ---------------------
+        parser.add('--test_freq',                default=5, type=int, 
+                                                 help='frequency of testing in epochs')
+        
+        parser.add('--batch_size',               default=1, type=int,
+                                                 help='batch size across all GPUs')
+        
+        parser.add('--num_workers_per_process',  default=20, type=int,
+                                                 help='number of workers used for data loading in each process')
+        
+        parser.add('--skip_test',                action='store_true',
+                                                 help='do not perform testing')
+        
+        parser.add('--calc_stats',               action='store_true',
+                                                 help='calculate batch norm standing stats')
+        
+        parser.add('--visual_freq',              default=-1, type=int, 
+                                                 help='in iterations, -1 -- output logs every epoch')
 
-            optimizer_D.zero_grad()
+        # Mixed precision options
+        parser.add('--use_half',                 action='store_true',
+                                                 help='enable half precision calculation')
+        
+        parser.add('--use_closure',              action='store_true',
+                                                 help='use closure function during optimization (required by LBFGS)')
+        
+        parser.add('--use_apex',                 action='store_true',
+                                                 help='enable apex')
+        
+        parser.add('--amp_opt_level',            default='O0', type=str,
+                                                 help='full/mixed/half precision, refer to apex.amp docs')
+        
+        parser.add('--amp_loss_scale',           default='dynamic', type=str,
+                                                 help='fixed or dynamic loss scale')
 
-            pred_real = discriminator(source_image, source_landmark)
-            pred_fake = discriminator(generated_image.detach(), target_landmark)
+        # Technical options that are set automatically
+        parser.add('--local_rank', default=0, type=int)
+        parser.add('--rank',       default=0, type=int)
+        parser.add('--world_size', default=1, type=int)
+        parser.add('--train_size', default=1, type=int)
 
-            # Total loss
-            loss_D = Loss_adv(pred_real, torch.ones_like(pred_real)) + Loss_adv(pred_fake, torch.zeros_like(pred_fake))
+        # Dataset options
+        args, _ = parser.parse_known_args()
 
-            loss_D.backward()
-            optimizer_D.step()
+        os.environ['TORCH_HOME'] = args.torch_home
 
-            # --------------
-            #  Log Progress
-            # --------------
-            D_loss += loss_D.item()
-            G_loss += loss_G.item()
-            pbar.update(1)
+        importlib.import_module(f'datasets.{args.dataloader_name}').DatasetWrapper.get_args(parser)
 
-            # dataset is too large, we will skip every 1000 iter
-            if i >= 1000:
-                break
+        # runner options
+        importlib.import_module(f'runners.{args.runner_name}').RunnerWrapper.get_args(parser)
 
-    avg_D_loss = D_loss / len(dataloader)
-    avg_G_loss = G_loss / len(dataloader)
+        return parser
 
-    print(
-        'Epoch:{1}/{2} D_loss:{3} G_loss:{4} time:{0}'.format(
-            datetime.now() - t_start, epoch + 1, opt.n_epochs, avg_D_loss,
-            avg_G_loss))
-    if (epoch + 1) % opt.sample_interval == 0:
-        # Save example results
-        img_grid = torch.cat((source_image, target_image, generated_image, target_landmark), -1)
-        save_image(img_grid, opt.save_images + "/epoch-{}.png".format(epoch + 1), nrow=1, normalize=False)
-    if (epoch + 1) % opt.checkpoint_interval == 0:
-        # Save model checkpoints
-        torch.save(embedder.state_dict(), opt.save_models + "/embedder_{}.pth".format(epoch + 1))
-        torch.save(generator.state_dict(), opt.save_models + "/generator_{}.pth".format(epoch + 1))
-        torch.save(discriminator.state_dict(), opt.save_models + "/discriminator_{}.pth".format(epoch + 1))
-    pbar.close()
+    def __init__(self, args, runner=None):
+        super(TrainingWrapper, self).__init__()
+        # Initialize and apply general options
+        ssl._create_default_https_context = ssl._create_unverified_context
+        torch.backends.cudnn.benchmark = True
+        torch.manual_seed(args.random_seed)
+        torch.cuda.manual_seed_all(args.random_seed)
+
+        # Set distributed training options
+        if args.num_gpus > 1 and args.num_gpus <= 8:
+            args.rank = args.local_rank
+            args.world_size = args.num_gpus
+            torch.cuda.set_device(args.local_rank)
+            torch.distributed.init_process_group(backend='nccl', init_method='env://')
+
+        elif args.num_gpus > 8:
+            raise # Not supported
+
+        # Prepare experiment directories and save options
+        project_dir = pathlib.Path(args.project_dir)
+        self.checkpoints_dir = project_dir / 'runs' / args.experiment_name / 'checkpoints'
+
+        # Store options
+        if not args.no_disk_write_ops:
+            os.makedirs(self.checkpoints_dir, exist_ok=True)
+
+        self.experiment_dir = project_dir / 'runs' / args.experiment_name
+
+        if not args.no_disk_write_ops:
+            # Redirect stdout
+            if args.redirect_print_to_file:
+                logs_dir = self.experiment_dir / 'logs'
+                os.makedirs(logs_dir, exist_ok=True)
+                sys.stdout = open(os.path.join(logs_dir, f'stdout_{args.rank}.txt'), 'w')
+                sys.stderr = open(os.path.join(logs_dir, f'stderr_{args.rank}.txt'), 'w')
+
+            if args.rank == 0:
+                print(args)
+                with open(self.experiment_dir / 'args.txt', 'wt') as args_file:
+                    for k, v in sorted(vars(args).items()):
+                        args_file.write('%s: %s\n' % (str(k), str(v)))
+
+        # Initialize model
+        self.runner = runner
+
+        if self.runner is None:
+            self.runner = importlib.import_module(f'runners.{args.runner_name}').RunnerWrapper(args)
+
+        # Load pre-trained weights (if needed)
+        init_networks = rn_utils.parse_str_to_list(args.init_networks) if args.init_networks else {}
+        networks_to_train = self.runner.nets_names_to_train
+
+        if args.init_which_epoch != 'none' and args.init_experiment_dir:
+            for net_name in init_networks:
+                self.runner.nets[net_name].load_state_dict(torch.load(pathlib.Path(args.init_experiment_dir) / 'checkpoints' / f'{args.init_which_epoch}_{net_name}.pth', map_location='cpu'))
+
+        if args.which_epoch != 'none':
+            for net_name in networks_to_train:
+                if net_name not in init_networks:
+                    self.runner.nets[net_name].load_state_dict(torch.load(self.checkpoints_dir / f'{args.which_epoch}_{net_name}.pth', map_location='cpu'))
+
+        if args.num_gpus > 0:
+            self.runner.cuda()
+
+        if args.rank == 0:
+            print(self.runner)
+
+    def train(self, args):
+        # Reset amp
+        if args.use_apex:
+            from apex import amp
+            
+            amp.init(False)
+
+        # Get dataloaders
+        train_dataloader = ds_utils.get_dataloader(args, 'train')
+        if not args.skip_test:
+            test_dataloader = ds_utils.get_dataloader(args, 'test')
+
+        model = runner = self.runner
+
+        if args.use_half:
+            runner.half()
+
+        # Initialize optimizers, schedulers and apex
+        opts = runner.get_optimizers(args)
+
+        # Load pre-trained params for optimizers and schedulers (if needed)
+        if args.which_epoch != 'none' and not args.init_experiment_dir:
+            for net_name, opt in opts.items():
+                opt.load_state_dict(torch.load(self.checkpoints_dir / f'{args.which_epoch}_opt_{net_name}.pth', map_location='cpu'))
+
+        if args.use_apex and args.num_gpus > 0 and args.num_gpus <= 8:
+            # Enfornce apex mixed precision settings
+            nets_list, opts_list = [], []
+            for net_name in sorted(opts.keys()):
+                nets_list.append(runner.nets[net_name])
+                opts_list.append(opts[net_name])
+
+            loss_scale = float(args.amp_loss_scale) if args.amp_loss_scale != 'dynamic' else args.amp_loss_scale
+
+            nets_list, opts_list = amp.initialize(nets_list, opts_list, opt_level=args.amp_opt_level, num_losses=1, loss_scale=loss_scale)
+
+            # Unpack opts_list into optimizers
+            for net_name, net, opt in zip(sorted(opts.keys()), nets_list, opts_list):
+                runner.nets[net_name] = net
+                opts[net_name] = opt
+
+            if args.which_epoch != 'none' and not args.init_experiment_dir and os.path.exists(self.checkpoints_dir / f'{args.which_epoch}_amp.pth'):
+                amp.load_state_dict(torch.load(self.checkpoints_dir / f'{args.which_epoch}_amp.pth', map_location='cpu'))
+
+        # Initialize apex distributed data parallel wrapper
+        if args.num_gpus > 1 and args.num_gpus <= 8:
+            from apex import parallel
+
+            model = parallel.DistributedDataParallel(runner, delay_allreduce=True)
+
+        epoch_start = 1 if args.which_epoch == 'none' else int(args.which_epoch) + 1
+
+        # Initialize logging
+        train_iter = epoch_start - 1
+
+        if args.visual_freq != -1:
+            train_iter /= args.visual_freq
+
+        logger = Logger(args, self.experiment_dir)
+        logger.set_num_iter(
+            train_iter=train_iter, 
+            test_iter=(epoch_start - 1) // args.test_freq)
+
+        if args.debug and not args.use_apex:
+            torch.autograd.set_detect_anomaly(True)
+
+        total_iters = 1
+
+        for epoch in range(epoch_start, args.num_epochs + 1):
+            if args.rank == 0: 
+                print('epoch %d' % epoch)
+
+            # Train for one epoch
+            model.train()
+            time_start = time.time()
+
+            # Shuffle the dataset before the epoch
+            train_dataloader.dataset.shuffle()
+
+            for i, data_dict in enumerate(train_dataloader, 1):               
+                # Prepare input data
+                if args.num_gpus > 0 and args.num_gpus > 0:
+                    for key, value in data_dict.items():
+                        data_dict[key] = value.cuda()
+
+                # Convert inputs to FP16
+                if args.use_half:
+                    for key, value in data_dict.items():
+                        data_dict[key] = value.half()
+
+                output_logs = i == len(train_dataloader)
+
+                if args.visual_freq != -1:
+                    output_logs = not (total_iters % args.visual_freq)
+
+                output_visuals = output_logs and not args.no_disk_write_ops
+
+                # Accumulate list of optimizers that will perform opt step
+                for opt in opts.values():
+                    opt.zero_grad()
+
+                # Perform a forward pass
+                if not args.use_closure:
+                    loss = model(data_dict)
+                    closure = None
+
+                if args.use_apex and args.num_gpus > 0 and args.num_gpus <= 8:
+                    # Mixed precision requires a special wrapper for the loss
+                    with amp.scale_loss(loss, opts.values()) as scaled_loss:
+                        scaled_loss.backward()
+
+                elif not args.use_closure:
+                    loss.backward()
+
+                else:
+                    def closure():
+                        loss = model(data_dict)
+                        loss.backward()
+                        return loss
+
+                # Perform steps for all optimizers
+                for opt in opts.values():
+                    opt.step(closure)
+
+                if output_logs:
+                    logger.output_logs('train', runner.output_visuals(), runner.output_losses(), time.time() - time_start)
+
+                    if args.debug:
+                        break
+
+                if args.visual_freq != -1:
+                    total_iters += 1
+                    total_iters %= args.visual_freq
+            
+            # Increment the epoch counter in the training dataset
+            train_dataloader.dataset.epoch += 1
+
+            # If testing is not required -- continue
+            if epoch % args.test_freq:
+                continue
+
+            # If skip test flag is set -- only check if a checkpoint if required
+            if not args.skip_test:
+                # Calculate "standing" stats for the batch normalization
+                if args.calc_stats:
+                    runner.calculate_batchnorm_stats(train_dataloader, args.debug)
+
+                # Test
+                time_start = time.time()
+                model.eval()
+
+                for data_dict in test_dataloader:
+                    # Prepare input data
+                    if args.num_gpus > 0:
+                        for key, value in data_dict.items():
+                            data_dict[key] = value.cuda()
+
+                    # Forward pass
+                    with torch.no_grad():
+                        model(data_dict)
+                    
+                    if args.debug:
+                        break
+
+            # Output logs
+            logger.output_logs('test', runner.output_visuals(), runner.output_losses(), time.time() - time_start)
+            
+            # If creation of checkpoint is not required -- continue
+            if epoch % args.checkpoint_freq and not args.debug:
+                continue
+
+            # Create or load a checkpoint
+            if args.rank == 0  and not args.no_disk_write_ops:
+                with torch.no_grad():
+                    for net_name in runner.nets_names_to_train:
+                        # Save a network
+                        torch.save(runner.nets[net_name].state_dict(), self.checkpoints_dir / f'{epoch}_{net_name}.pth')
+
+                        # Save an optimizer
+                        torch.save(opts[net_name].state_dict(), self.checkpoints_dir / f'{epoch}_opt_{net_name}.pth')
+
+                    # Save amp
+                    if args.use_apex:
+                        torch.save(amp.state_dict(), self.checkpoints_dir / f'{epoch}_amp.pth')
+
+        return runner
+
+if __name__ == "__main__":
+    ## Parse options ##
+    parser = argparse.ArgumentParser(conflict_handler='resolve')
+    parser.add = parser.add_argument
+
+    TrainingWrapper.get_args(parser)
+
+    args, _ = parser.parse_known_args()
+
+    ## Initialize the model ##
+    m = TrainingWrapper(args)
+
+    ## Perform training ##
+    nets = m.train(args)
