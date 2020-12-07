@@ -50,10 +50,10 @@ class ChooseTypePage : AppCompatActivity() {
             val typeButtonGroup = findViewById<RadioGroup>(R.id.type_button_group)
             val selectedTypeButton = findViewById<RadioButton>(typeButtonGroup.checkedRadioButtonId)
 
-            //真顔のタイプ
+            //真顔のタイプ A
             var type = 1
             if(getString(R.string.egao) == selectedTypeButton?.text) {
-                //笑顔のタイプ
+                //笑顔のタイプ B
                 type = 2
             }
             Log.i("type", "type: $type")
@@ -70,7 +70,7 @@ class ChooseTypePage : AppCompatActivity() {
 
             UploadImageHttpRequest( handler ).execute(
                 Param(
-                    "http://35.221.90.53:9004/image",
+                    "http://35.189.172.203:8000/image",
                     resizedBmp,
                     type
                 )
